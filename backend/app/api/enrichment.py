@@ -72,12 +72,17 @@ async def enrich_data(request: EnrichmentRequest):
         )
         
         # Store in history
+        history_id = str(uuid.uuid4())
         history_service.add_to_history(
-            str(uuid.uuid4()),
+            history_id,
             input_data,
             enriched_data.get("person"),
             enriched_data.get("company")
         )
+        
+        # Debug: Check if history was added
+        history_count = history_service.get_history_count()
+        print(f"Added to history: {history_id}, Total history items: {history_count}")
         
         return response
         

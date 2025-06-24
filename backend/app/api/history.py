@@ -121,8 +121,34 @@ async def get_history_stats():
         
         return {
             "total_items": total_count,
-            "max_history_size": history_service._max_history_size
+            "max_history_size": history_service.__class__._max_history_size
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving history stats: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error retrieving history stats: {str(e)}")
+
+@router.get("/history/debug")
+async def debug_history():
+    """
+    Debug endpoint to check history state.
+    
+    Returns:
+        Current history state for debugging
+    """
+    try:
+        history_items = history_service.get_history()
+        total_count = history_service.get_history_count()
+        
+        return {
+            "total_count": total_count,
+            "max_history_size": history_service.__class__._max_history_size,
+            "history_items_count": len(history_items),
+            "sample_items": history_items[:3] if history_items else []
+        }
+        
+    except Exception as e:
+        return {
+            "error": str(e),
+            "total_count": 0,
+            "max_history_size": 100
+        } 

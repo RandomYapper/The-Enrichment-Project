@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Customer/Lead Enrichment Web App
 
 A full-stack web application that enriches customer and lead information using email addresses or company domains.
@@ -189,3 +190,7 @@ If no API key is provided, the app will use mock data for demonstration purposes
 ## 📝 License
 
 This project is open source and available under the MIT License.
+=======
+# The-Enrichment-Project
+This is the enrichment project for an intership which I made
+>>>>>>> origin/main

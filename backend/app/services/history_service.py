@@ -9,10 +9,19 @@ import uuid
 class HistoryService:
     """Service class for managing enrichment history."""
     
+    _instance = None
+    _history = []
+    _max_history_size = 100
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(HistoryService, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
-        # In-memory storage for history (in production, this would be a database)
-        self._history: List[Dict[str, Any]] = []
-        self._max_history_size = 100  # Limit history to prevent memory issues
+        # Only initialize once
+        if not hasattr(self, '_initialized'):
+            self._initialized = True
     
     def add_to_history(self, id: str, input_data: str, person_data: Optional[Dict] = None, company_data: Optional[Dict] = None):
         """
@@ -33,11 +42,11 @@ class HistoryService:
         }
         
         # Add to beginning of list (most recent first)
-        self._history.insert(0, history_item)
+        self.__class__._history.insert(0, history_item)
         
         # Limit history size
-        if len(self._history) > self._max_history_size:
-            self._history = self._history[:self._max_history_size]
+        if len(self.__class__._history) > self.__class__._max_history_size:
+            self.__class__._history = self.__class__._history[:self.__class__._max_history_size]
     
     def get_history(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
@@ -50,8 +59,8 @@ class HistoryService:
             List of history items
         """
         if limit is None:
-            return self._history.copy()
-        return self._history[:limit]
+            return self.__class__._history.copy()
+        return self.__class__._history[:limit]
     
     def get_history_by_id(self, id: str) -> Optional[Dict[str, Any]]:
         """
@@ -63,18 +72,18 @@ class HistoryService:
         Returns:
             History item or None if not found
         """
-        for item in self._history:
+        for item in self.__class__._history:
             if item["id"] == id:
                 return item
         return None
     
     def clear_history(self):
         """Clear all history items."""
-        self._history.clear()
+        self.__class__._history.clear()
     
     def get_history_count(self) -> int:
         """Get the total number of history items."""
-        return len(self._history)
+        return len(self.__class__._history)
     
     def search_history(self, query: str) -> List[Dict[str, Any]]:
         """
@@ -89,7 +98,7 @@ class HistoryService:
         query = query.lower()
         results = []
         
-        for item in self._history:
+        for item in self.__class__._history:
             if query in item["input_data"].lower():
                 results.append(item)
         
