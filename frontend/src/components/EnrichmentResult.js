@@ -3,12 +3,183 @@ import React from "react";
 const EnrichmentResult = ({ data }) => {
   if (!data) return null;
 
-  const { person, company, input_data, message, timestamp } = data;
+  // Check if this is an AI agent response
+  const isAIAgentResponse = data.query && data.extracted_data;
+  const {
+    person,
+    company,
+    input_data,
+    message,
+    timestamp,
+    query,
+    extracted_data,
+    results,
+    total_results,
+    sources_used,
+  } = data;
 
   const formatTimestamp = (timestamp) => {
     return new Date(timestamp).toLocaleString();
   };
 
+  // AI Agent Response
+  if (isAIAgentResponse) {
+    return (
+      <div className="card max-w-6xl mx-auto animate-fade-in">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            AI Agent Results
+          </h2>
+          <p className="text-gray-600">
+            Query: <span className="font-medium text-primary-600">{query}</span>
+          </p>
+          {total_results && (
+            <p className="text-sm text-green-600 mt-1">
+              Found {total_results} matching contacts
+            </p>
+          )}
+          {sources_used && sources_used.length > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              Sources: {sources_used.join(", ")}
+            </p>
+          )}
+        </div>
+
+        {/* Extracted Data Summary */}
+        {extracted_data && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-blue-900 mb-3">
+              Query Analysis
+            </h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {extracted_data.target_roles &&
+                extracted_data.target_roles.length > 0 && (
+                  <div>
+                    <span className="text-sm font-medium text-blue-700">
+                      Target Roles:
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {extracted_data.target_roles.map((role, index) => (
+                        <span
+                          key={index}
+                          className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                        >
+                          {role}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              {extracted_data.industries &&
+                extracted_data.industries.length > 0 && (
+                  <div>
+                    <span className="text-sm font-medium text-blue-700">
+                      Industries:
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {extracted_data.industries.map((industry, index) => (
+                        <span
+                          key={index}
+                          className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                        >
+                          {industry}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              {extracted_data.region && (
+                <div>
+                  <span className="text-sm font-medium text-blue-700">
+                    Region:
+                  </span>
+                  <span className="text-sm text-blue-800 ml-2">
+                    {extracted_data.region}
+                  </span>
+                </div>
+              )}
+              {extracted_data.intent && (
+                <div>
+                  <span className="text-sm font-medium text-blue-700">
+                    Intent:
+                  </span>
+                  <span className="text-sm text-blue-800 ml-2">
+                    {extracted_data.intent}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Results List */}
+        {results && results.length > 0 ? (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Found Contacts
+            </h3>
+            <div className="grid gap-4">
+              {results.map((contact, index) => (
+                <div
+                  key={index}
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">
+                        {contact.full_name || contact.name || "Unknown Name"}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {contact.job_title || contact.title || "Unknown Title"}
+                      </p>
+                      {contact.company && (
+                        <p className="text-sm text-gray-600">
+                          {contact.company}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex space-x-2">
+                      {contact.email && (
+                        <a
+                          href={`mailto:${contact.email}`}
+                          className="text-primary-600 hover:text-primary-700 text-sm"
+                        >
+                          Email
+                        </a>
+                      )}
+                      {contact.linkedin_profile && (
+                        <a
+                          href={contact.linkedin_profile}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:text-primary-700 text-sm"
+                        >
+                          LinkedIn
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  {contact.location && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      📍 {contact.location}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-600">
+              No contacts found matching your criteria.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Basic Enrichment Response (existing format)
   return (
     <div className="card max-w-4xl mx-auto animate-fade-in">
       <div className="text-center mb-6">
@@ -201,8 +372,24 @@ const EnrichmentResult = ({ data }) => {
                   <span className="text-sm font-medium text-gray-600">
                     Domain
                   </span>
-                  <span className="text-sm text-gray-900">
+                  <a
+                    href={`https://${company.domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary-600 hover:text-primary-700"
+                  >
                     {company.domain}
+                  </a>
+                </div>
+              )}
+
+              {company.industry && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-600">
+                    Industry
+                  </span>
+                  <span className="text-sm text-gray-900">
+                    {company.industry}
                   </span>
                 </div>
               )}
@@ -227,57 +414,14 @@ const EnrichmentResult = ({ data }) => {
                 </div>
               )}
 
-              {company.industry && (
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+              {company.description && (
+                <div className="flex justify-between items-start py-2 border-b border-gray-100">
                   <span className="text-sm font-medium text-gray-600">
-                    Industry
+                    Description
                   </span>
-                  <span className="text-sm text-gray-900">
-                    {company.industry}
+                  <span className="text-sm text-gray-900 text-right max-w-xs">
+                    {company.description}
                   </span>
-                </div>
-              )}
-
-              {company.website && (
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">
-                    Website
-                  </span>
-                  <a
-                    href={company.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    Visit Website
-                  </a>
-                </div>
-              )}
-
-              {company.founded && (
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">
-                    Founded
-                  </span>
-                  <span className="text-sm text-gray-900">
-                    {company.founded}
-                  </span>
-                </div>
-              )}
-
-              {company.linkedin_url && (
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">
-                    LinkedIn
-                  </span>
-                  <a
-                    href={company.linkedin_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    View Company
-                  </a>
                 </div>
               )}
             </div>

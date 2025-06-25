@@ -19,12 +19,14 @@ from fastapi.responses import JSONResponse
 # Import API routes AFTER environment is loaded
 from app.api.enrichment import router as enrichment_router
 from app.api.history import router as history_router
+from app.api.ai_enrichment import router as ai_router
+from app.api import enrichment
 
 # Create FastAPI app instance
 app = FastAPI(
     title="Customer/Lead Enrichment API",
-    description="A FastAPI backend for enriching customer and lead information using People Data Lab API",
-    version="1.0.0",
+    description="A FastAPI backend for enriching customer and lead information using People Data Lab API and AI agent",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -32,7 +34,12 @@ app = FastAPI(
 # Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # React dev server
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000",
+        "http://localhost:3001", 
+        "http://127.0.0.1:3001"
+    ],  # React dev server (both common ports)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,22 +48,39 @@ app.add_middleware(
 # Include API routers
 app.include_router(enrichment_router, prefix="/api", tags=["enrichment"])
 app.include_router(history_router, prefix="/api", tags=["history"])
+app.include_router(ai_router, prefix="/api", tags=["ai_agent"])
+app.include_router(enrichment.router)
 
 @app.get("/")
 async def root():
     """Root endpoint with API information."""
     return {
-        "message": "Customer/Lead Enrichment API",
-        "version": "1.0.0",
+        "message": "Customer/Lead Enrichment API with AI Agent",
+        "version": "2.0.0",
         "docs": "/docs",
         "status": "running",
-        "data_source": "People Data Lab"
+        "features": {
+            "basic_enrichment": "People Data Lab API",
+            "ai_agent": "OpenAI-powered natural language processing",
+            "multi_source": "Multiple enrichment APIs support"
+        },
+        "endpoints": {
+            "basic_enrichment": "/api/enrich",
+            "ai_agent": "/api/ai/enrich",
+            "history": "/api/history",
+            "health": "/health"
+        }
     }
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "pdl_configured": bool(os.getenv("PDL_API_KEY"))}
+    return {
+        "status": "healthy", 
+        "pdl_configured": bool(os.getenv("PDL_API_KEY")),
+        "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
+        "ai_agent_enabled": bool(os.getenv("OPENAI_API_KEY"))
+    }
 
 # Global exception handler
 @app.exception_handler(Exception)

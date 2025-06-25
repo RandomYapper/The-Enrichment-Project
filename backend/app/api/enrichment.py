@@ -2,10 +2,11 @@
 Enrichment API routes for handling email and domain enrichment requests.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from typing import Dict, Any
 import uuid
 from datetime import datetime
+import json
 
 from app.models.enrichment import EnrichmentRequest, EnrichmentResponse, PersonInfo, CompanyInfo
 from app.services.pdl_service import PDLService
@@ -16,6 +17,9 @@ router = APIRouter()
 # Initialize services
 pdl_service = PDLService()
 history_service = HistoryService()
+
+# In-memory storage for FullEnrich results
+fullenrich_results = {}
 
 @router.post("/enrich", response_model=EnrichmentResponse)
 async def enrich_data(request: EnrichmentRequest):
@@ -118,3 +122,37 @@ async def validate_input(input_data: str):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Validation error: {str(e)}")
+
+@router.post("/fullenrich/webhook")
+async def fullenrich_webhook(request: Request):
+    data = await request.json()
+    enrichment_id = data.get("enrichment_id")
+    if enrichment_id:
+        fullenrich_results[enrichment_id] = data
+        print(f"[FullEnrich Webhook] Stored result for {enrichment_id}")
+    else:
+        print("[FullEnrich Webhook] No enrichment_id in payload!")
+    return {"status": "ok"}
+
+@router.get("/fullenrich/result/{enrichment_id}")
+async def get_fullenrich_result(enrichment_id: str):
+    result = fullenrich_results.get(enrichment_id)
+    if result:
+        # Transform contacts if present
+        contacts = result.get("contacts") or result.get("data") or []
+        formatted_contacts = []
+        for contact in contacts:
+            formatted_contacts.append({
+                "full_name": contact.get("full_name") or contact.get("name"),
+                "email": contact.get("email") or (contact.get("contact") and contact["contact"].get("email")),
+                "job_title": contact.get("job_title") or contact.get("title"),
+                "company": contact.get("company_name") or contact.get("company"),
+                "linkedin_profile": contact.get("linkedin_url") or contact.get("linkedin_profile"),
+                "location": contact.get("location"),
+            })
+        return {
+            "results": formatted_contacts,
+            "enrichment_id": enrichment_id,
+            "raw": result,
+        }
+    return {"status": "pending", "message": "Result not available yet."}
